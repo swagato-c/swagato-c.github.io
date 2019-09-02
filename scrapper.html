@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Swagato Chatterjee" />
+  <title>Writing an Artwork Scrapper</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <style>
+code.sourceCode > span { display: inline-block; line-height: 1.25; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Writing an Artwork Scrapper</h1>
+<p class="author">Swagato Chatterjee</p>
+<p class="date">July 2019</p>
+</header>
+<h2 id="background">Background</h2>
+<p>To prepare the dataset for the project, I needed the artwork image-iconography pair. <a href="http://iconclass.nl">Iconclass</a> project aims to solve the iconography part of the problem by using a code for Iconography partly inspired by <a href="https://en.wikipedia.org/wiki/Dewey_Decimal_Classification">Dewy’s Decimal</a> system. It is a tree-structured dictionary with each entry(code) describing the iconography and search keywords associated with that code; followed by codes for more detailed variants of that iconography. Eg., my work was with Christian Artworks. So I decided to focus on New Testament (code: <strong>73</strong>),which has details like Birth and Youth of Christ (code: <strong>73B</strong>) and which itself was a part of Bible (code: <strong>7</strong>). Hence if I could train a model to determine these codes I solve the iconography problem. Now where can I get the images and codes from? Thanks to <a href="https://rkd.nl/en/explore/images">RKD Museum’s site</a>, we have a wonderful gallery of images with Iconclass codes (yes an image might have multiple iconographies) attached with them.</p>
+<p>I just have to figure out a way to mine them.</p>
+<h2 id="deciding-on-the-scrapping-strategy">Deciding on the scrapping strategy</h2>
+<p>To scrap the requisite images out of the site, we need the following:</p>
+<ul>
+<li>somehow set the filters (code and painting dates) dynamically.</li>
+<li>for each of the image returned get inside the image page and download the image and the codes.</li>
+<li>somehow figure out how to apply them on a paginated html page (why paginated? RKD returns that duh!).</li>
+<li>speed the process up??</li>
+</ul>
+<p>Well if you are planning to use the frontend for scrapping, you are out of luck. However, with a feat of luck, I discovered something amazing! RKD has a <a href="https://api.rkd.nl/api">API endpoint</a>. Hence if I can develop some hacks, I can download the images and the codes! You can exactly do that with the <code>/api/search/{database}</code> query. The <code>database</code> is obviously <code>images</code>, but the devil is in the details. Now the best way to extract information will be using the JSON format, well because Python handles it well, but the server doesn’t return all the image links and returns no iconclass code when I query</p>
+<pre><code>api.rkd.nl/api/search/images?filters[iconclass_code]=73*&amp;filters[periode]=1400||1735&amp;format=json</code></pre>
+<p>;i.e. set iconclass to everything under <strong>code 73</strong> which implies <em>New Testament</em> (<code>filters[iconclass_code]=73*</code>) and time period to 15-18th Century(<code>filters[periode]=1400||1735</code>). Hence to get hold of the image links and the codes we need to add the option <code>fieldset=detail</code>. The whole query stands as of now to be,</p>
+<pre><code>api.rkd.nl/api/search/images?filters[iconclass_code]=73*&amp;filters[periode]=1400||1735&amp;format=json&amp;fieldset=detail</code></pre>
+<p>If we study the problem now, this query returns:</p>
+<ul>
+<li>Multiple image ids under <code>picturae_images</code>, of which one is import and rest are pure trash</li>
+<li>This is for one image only, for the others you have to query again</li>
+</ul>
+<p>After tinkering a bit, I managed to come to the conclusion, that the most important image is the last one in the array <code>picturae_images</code>. You solve one problem, you are hit with another; you can’t download hi-res watermark-free images from RKD! Cool! The only images you can get hold of are <strong>650x650px</strong> thumbnails. I decided to download them. Since the query is just for the first image, I had to add the <code>start={i}</code> option to the query, where <code>i</code> will be substituted by the <span class="math inline"><em>i</em> − 1<sup><em>t</em><em>h</em></sup></span> image of the total <span class="math inline"><em>N</em></span> images matching the query constraints. We have to send <span class="math inline">2<em>N</em></span> such queries (one for image and the other for the metadata). We can get the value of <span class="math inline"><em>N</em></span> from the response field <code>num_queries</code>.</p>
+<h2 id="organising-the-data">Organising the data</h2>
+<p>Now that we have figured out how to collect the data let’s write functions to fetch and organise them:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="kw">def</span> download_images(im, <span class="bu">id</span>):</span>
+<span id="cb3-2"><a href="#cb3-2"></a>    <span class="cf">with</span> http.ClientSession() <span class="im">as</span> session:</span>
+<span id="cb3-3"><a href="#cb3-3"></a>        url <span class="op">=</span> <span class="ss">f&#39;https://images.rkd.nl/rkd/thumb/650x650/</span><span class="sc">{im}</span><span class="ss">.jpg&#39;</span></span>
+<span id="cb3-4"><a href="#cb3-4"></a>        <span class="cf">with</span> session.get(url) <span class="im">as</span> resp:</span>
+<span id="cb3-5"><a href="#cb3-5"></a>            <span class="cf">if</span> resp.status <span class="op">==</span> <span class="dv">200</span>:</span>
+<span id="cb3-6"><a href="#cb3-6"></a>                f <span class="op">=</span> <span class="bu">open</span>(<span class="ss">f&#39;images/</span><span class="sc">{</span><span class="bu">id</span><span class="sc">}</span><span class="ss">.jpg&#39;</span>, mode<span class="op">=</span><span class="st">&#39;wb&#39;</span>)</span>
+<span id="cb3-7"><a href="#cb3-7"></a>                f.write(<span class="cf">await</span> resp.read())</span>
+<span id="cb3-8"><a href="#cb3-8"></a>                f.close()</span>
+<span id="cb3-9"><a href="#cb3-9"></a></span>
+<span id="cb3-10"><a href="#cb3-10"></a><span class="kw">def</span> get_info(offset):</span>
+<span id="cb3-11"><a href="#cb3-11"></a>    url <span class="op">=</span> <span class="ss">f&#39;https://api.rkd.nl/api/search/images?filters[iconclass_code]=73*</span></span>
+<span id="cb3-12"><a href="#cb3-12"></a><span class="ss">    &amp;format=json&amp;language=en&amp;filters[periode]=1400||1735</span></span>
+<span id="cb3-13"><a href="#cb3-13"></a><span class="ss">    &amp;fieldset=detail&amp;start=</span><span class="sc">{</span>offset<span class="sc">}</span><span class="ss">&#39;</span></span>
+<span id="cb3-14"><a href="#cb3-14"></a>    <span class="cf">with</span> http.ClientSession() <span class="im">as</span> session:</span>
+<span id="cb3-15"><a href="#cb3-15"></a>        <span class="cf">with</span> session.get(url) <span class="im">as</span> resp:</span>
+<span id="cb3-16"><a href="#cb3-16"></a>            <span class="cf">if</span> resp.status <span class="op">==</span> <span class="dv">200</span>:</span>
+<span id="cb3-17"><a href="#cb3-17"></a>                q <span class="op">=</span> resp.json()</span>
+<span id="cb3-18"><a href="#cb3-18"></a>                <span class="cf">return</span> q[<span class="st">&#39;response&#39;</span>][<span class="st">&#39;docs&#39;</span>][<span class="dv">0</span>]</span>
+<span id="cb3-19"><a href="#cb3-19"></a></span>
+<span id="cb3-20"><a href="#cb3-20"></a><span class="kw">def</span> extract(i):</span>
+<span id="cb3-21"><a href="#cb3-21"></a>    resp <span class="op">=</span> get_info(i)</span>
+<span id="cb3-22"><a href="#cb3-22"></a>    imgl <span class="op">=</span> resp[<span class="st">&#39;picturae_images&#39;</span>][<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb3-23"><a href="#cb3-23"></a>    permalink <span class="op">=</span> resp[<span class="st">&#39;permalink&#39;</span>]</span>
+<span id="cb3-24"><a href="#cb3-24"></a>    q <span class="op">=</span> [st.split(<span class="st">&#39;@&#39;</span>) <span class="cf">for</span> st <span class="kw">in</span> resp[<span class="st">&#39;iconclass_tekst_search&#39;</span>]]</span>
+<span id="cb3-25"><a href="#cb3-25"></a>    <span class="bu">id</span> <span class="op">=</span> permalink.rsplit(<span class="st">&#39;/&#39;</span>, <span class="dv">1</span>)[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb3-26"><a href="#cb3-26"></a>    <span class="cf">for</span> sq <span class="kw">in</span> q:</span>
+<span id="cb3-27"><a href="#cb3-27"></a>        t, c <span class="op">=</span> sq</span>
+<span id="cb3-28"><a href="#cb3-28"></a>        <span class="cf">if</span> c.startswith(<span class="st">&#39;73&#39;</span>):</span>
+<span id="cb3-29"><a href="#cb3-29"></a>            data.append((c, t, imgl, permalink, <span class="bu">id</span>))  <span class="co"># keeping it at 1NF, data is global</span></span>
+<span id="cb3-30"><a href="#cb3-30"></a>    <span class="cf">return</span> imgl, <span class="bu">id</span></span></code></pre></div>
+<p>The next part is simple, for each of the <span class="math inline"><em>N</em></span> query <code>extract()</code> and <code>download_images()</code>. Save the data as a csv file. You will soon notice, this takes a lot of time to download and process. Can we do better? One observation might be that <code>download_images()</code> takes way more time than <code>get_info()</code> and <code>extract()</code> combined. If only we could convert it into a pipelined process, where the <code>extract()</code> and <code>get_info()</code> doesn’t sit idle.</p>
+<h2 id="going-asynchronous-with-async-await">Going asynchronous with <code>async-await</code></h2>
+<p>The <code>asyncio</code> package in Python 3 allows us to write asynchronous piped code. Check the following YouTube video for a tutorial.</p>
+<p><a href="http://www.youtube.com/watch?v=F19R_M4Nay4?t=3719" title="Async Tutorial"><img src="http://img.youtube.com/vi/F19R_M4Nay4/0.jpg" alt="asyncio" /></a></p>
+<p>Now, we apply the wisdom passed by the lecturer and add <code>@unsync</code> decorators. The code hence becomes:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="at">@unsync</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="cf">async</span> <span class="kw">def</span> download_images(task):</span>
+<span id="cb4-3"><a href="#cb4-3"></a>    im, <span class="bu">id</span> <span class="op">=</span> task.result()</span>
+<span id="cb4-4"><a href="#cb4-4"></a>    <span class="cf">async</span> <span class="cf">with</span> aiohttp.ClientSession() <span class="im">as</span> session:</span>
+<span id="cb4-5"><a href="#cb4-5"></a>        url <span class="op">=</span> <span class="ss">f&#39;https://images.rkd.nl/rkd/thumb/650x650/</span><span class="sc">{im}</span><span class="ss">.jpg&#39;</span></span>
+<span id="cb4-6"><a href="#cb4-6"></a>        <span class="cf">async</span> <span class="cf">with</span> session.get(url) <span class="im">as</span> resp:</span>
+<span id="cb4-7"><a href="#cb4-7"></a>            <span class="cf">if</span> resp.status <span class="op">==</span> <span class="dv">200</span>:</span>
+<span id="cb4-8"><a href="#cb4-8"></a>                f <span class="op">=</span> <span class="cf">await</span> aiofiles.<span class="bu">open</span>(<span class="ss">f&#39;images/</span><span class="sc">{</span><span class="bu">id</span><span class="sc">}</span><span class="ss">.jpg&#39;</span>, mode<span class="op">=</span><span class="st">&#39;wb&#39;</span>)</span>
+<span id="cb4-9"><a href="#cb4-9"></a>                <span class="cf">await</span> f.write(<span class="cf">await</span> resp.read())</span>
+<span id="cb4-10"><a href="#cb4-10"></a>                <span class="cf">await</span> f.close()</span>
+<span id="cb4-11"><a href="#cb4-11"></a></span>
+<span id="cb4-12"><a href="#cb4-12"></a><span class="at">@unsync</span></span>
+<span id="cb4-13"><a href="#cb4-13"></a><span class="cf">async</span> <span class="kw">def</span> get_info(offset):</span>
+<span id="cb4-14"><a href="#cb4-14"></a>    url <span class="op">=</span> <span class="ss">f&#39;https://api.rkd.nl/api/search/images?filters[iconclass_code]=73*</span></span>
+<span id="cb4-15"><a href="#cb4-15"></a><span class="ss">    &amp;format=json&amp;language=en&amp;filters[periode]=1400||1735</span></span>
+<span id="cb4-16"><a href="#cb4-16"></a><span class="ss">    &amp;fieldset=detail&amp;start=</span><span class="sc">{</span>offset<span class="sc">}</span><span class="ss">&#39;</span></span>
+<span id="cb4-17"><a href="#cb4-17"></a>    <span class="cf">async</span> <span class="cf">with</span> aiohttp.ClientSession() <span class="im">as</span> session:</span>
+<span id="cb4-18"><a href="#cb4-18"></a>        <span class="cf">async</span> <span class="cf">with</span> session.get(url) <span class="im">as</span> resp:</span>
+<span id="cb4-19"><a href="#cb4-19"></a>            <span class="cf">if</span> resp.status <span class="op">==</span> <span class="dv">200</span>:</span>
+<span id="cb4-20"><a href="#cb4-20"></a>                q <span class="op">=</span> <span class="cf">await</span> resp.json()</span>
+<span id="cb4-21"><a href="#cb4-21"></a>                <span class="cf">return</span> q[<span class="st">&#39;response&#39;</span>][<span class="st">&#39;docs&#39;</span>][<span class="dv">0</span>]</span>
+<span id="cb4-22"><a href="#cb4-22"></a></span>
+<span id="cb4-23"><a href="#cb4-23"></a><span class="at">@unsync</span></span>
+<span id="cb4-24"><a href="#cb4-24"></a><span class="kw">def</span> extract(task):</span>
+<span id="cb4-25"><a href="#cb4-25"></a>    resp <span class="op">=</span> task.result()</span>
+<span id="cb4-26"><a href="#cb4-26"></a>    imgl <span class="op">=</span> resp[<span class="st">&#39;picturae_images&#39;</span>][<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-27"><a href="#cb4-27"></a>    permalink <span class="op">=</span> resp[<span class="st">&#39;permalink&#39;</span>]</span>
+<span id="cb4-28"><a href="#cb4-28"></a>    q <span class="op">=</span> [st.split(<span class="st">&#39;@&#39;</span>) <span class="cf">for</span> st <span class="kw">in</span> resp[<span class="st">&#39;iconclass_tekst_search&#39;</span>]]</span>
+<span id="cb4-29"><a href="#cb4-29"></a>    <span class="bu">id</span> <span class="op">=</span> permalink.rsplit(<span class="st">&#39;/&#39;</span>, <span class="dv">1</span>)[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-30"><a href="#cb4-30"></a>    <span class="cf">for</span> sq <span class="kw">in</span> q:</span>
+<span id="cb4-31"><a href="#cb4-31"></a>        t, c <span class="op">=</span> sq</span>
+<span id="cb4-32"><a href="#cb4-32"></a>        <span class="cf">if</span> c.startswith(<span class="st">&#39;73&#39;</span>):</span>
+<span id="cb4-33"><a href="#cb4-33"></a>            data.append((c, t, imgl, permalink, <span class="bu">id</span>))  <span class="co"># keeping it at 1NF</span></span>
+<span id="cb4-34"><a href="#cb4-34"></a>    <span class="cf">return</span> imgl, <span class="bu">id</span></span></code></pre></div>
+<p>This improves the performance significantly. For me, it reduced down the running time from 6 hrs to 4 hrs.</p>
+<h3 id="next-cleaning-up-the-data">Next: <a href="cleaning.html">Cleaning up the Data</a></h3>
+</body>
+</html>
